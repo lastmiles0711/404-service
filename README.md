@@ -111,49 +111,7 @@ Traefik will automatically obtain a Let's Encrypt certificate and serve your sit
 
 ---
 
-## 📁 Project Structure
 
-```
-404-service/
-├── index.js            # Express API & persistence logic
-├── reasons.json        # 1000+ creative 404 reasons
-├── stats.json          # Persistent fetch counter (auto-generated)
-├── public/             # Frontend assets
-│   ├── index.html      # Landing page & previewer
-│   └── no.png          # Logo
-├── package.json
-├── .devcontainer.json  # VS Code / Github devcontainer setup
-└── README.md
-```
-
----
-
-## 📦 package.json
-
-For reference, here's the package config:
-
-```json
-{
-  "name": "404-as-a-service",
-  "version": "1.0.0",
-  "description": "A lightweight API that returns random 404 reasons.",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "author": "lastmiles0711",
-  "license": "MIT",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "express-rate-limit": "^7.0.0"
-  }
-}
-```
-
-
-
-<div align="center">
 👤 Credits
 
 
