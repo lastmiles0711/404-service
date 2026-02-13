@@ -1,0 +1,43 @@
+services:
+  reverse-proxy:
+    image: traefik:latest
+    environment:
+      - DOCKER_API_VERSION=1.45
+    command:
+      - "--providers.docker"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  web:
+    build:
+      context: .
+    environment:
+      - PORT=3000
+      - PUBLIC_URL=https://${DOMAIN}
+    labels:
+      - "traefik.enable=true"
+      # HTTPS router (with cert)
+      - "traefik.http.routers.web-secure.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.web-secure.entrypoints=websecure"
+      - "traefik.http.routers.web-secure.tls.certresolver=myresolver"
+      # HTTP router with redirect to HTTPS
+      - "traefik.http.routers.web.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.web.entrypoints=web"
+      - "traefik.http.routers.web.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      # Service port
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
+
+volumes:
+  letsencrypt:

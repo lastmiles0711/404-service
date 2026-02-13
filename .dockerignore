@@ -1,0 +1,9 @@
+node_modules/
+assets/
+.devcontainer.json
+docker-compose.yml
+.env*
+.git/
+.gitignore
+LICENSE
+README.md
