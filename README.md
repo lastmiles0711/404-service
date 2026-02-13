@@ -137,16 +137,11 @@ For reference, here's the package config:
 }
 ```
 
----
-
-## ⚓ Devcontainer
-
-If you open this repo in Github Codespaces, it will automatically use `.devcontainer.json` to set up your environment.  If you open it in VSCode, it will ask you if you want to reopen it in a container.
-
----
 
 
-## 👤 Author
+<div align="center">
+👤 Credits
+
 
 Created by [lastmiles0711](https://github.com/lastmiles0711).  
 Special thanks to the original creator, [hotheadhacker](https://github.com/hotheadhacker), for the inspiration and foundation.
