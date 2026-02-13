@@ -11,11 +11,10 @@ const PORT = process.env.PORT || 3000;
 // Load reasons from JSON
 const reasons = JSON.parse(fs.readFileSync('./reasons.json', 'utf-8'));
 
-// Stats persistence: total number of times the API has served a reason
+// Stats persistence
 const STATS_FILE = './stats.json';
 let stats = { totalFetches: 0 };
 
-// Load existing stats from file if it exists on startup
 if (fs.existsSync(STATS_FILE)) {
   try {
     stats = JSON.parse(fs.readFileSync(STATS_FILE, 'utf-8'));
@@ -24,16 +23,10 @@ if (fs.existsSync(STATS_FILE)) {
   }
 }
 
-/**
- * Persists the current stats object to the local JSON file.
- */
 function saveStats() {
   fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2));
 }
 
-/**
- * Increments the total fetch counter and saves it to disk.
- */
 function incrementCounter() {
   stats.totalFetches++;
   saveStats();
