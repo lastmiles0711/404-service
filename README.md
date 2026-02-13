@@ -1,7 +1,9 @@
 <div align="center">
+  
 # 🚫 404-as-a-Service 🚫
 
 <img src="public/no.png" alt="404-as-a-Service" width="128">
+
 
 **Ever needed a creative 404 page?**  
 
