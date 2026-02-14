@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stats - 404-as-a-Service</title>
+    <link rel="icon" type="image/png" href="/assets/no.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .stats-big {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin: 0.5rem 0 2.5rem 0;
+            background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+        }
+
+        .stats-label {
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-size: 0.75rem;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        .chart-container {
+            margin: 1rem 0 1.5rem 0;
+            height: 225px;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .back-btn {
+            display: inline-block;
+            margin-top: 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .back-btn:hover {
+            color: var(--text-main);
+            border-color: var(--accent-hover);
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glow"></div>
+    <main style="max-width: 800px;">
+        <header>
+            <h1>Service Statistics</h1>
+
+        </header>
+
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <div class="stats-label">Total API Fetches</div>
+            <div id="fetchCount" class="stats-big">...</div>
+
+            <div class="chart-container">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="/" class="back-btn">← Back to Home</a>
+        </div>
+
+        <footer>
+            <p class="credit">
+                by <a href="https://lastmiles.site" target="_blank">lastmiles</a> — based on <a
+                    href="https://github.com/hotheadhacker/no-as-a-service" target="_blank">no-as-a-service</a>
+            </p>
+            <a href="https://github.com/lastmiles0711/404-service" target="_blank" class="star-link">⭐ Star on
+                GitHub</a>
+        </footer>
+    </main>
+
+    <script>
+        async function loadStats() {
+            try {
+                const [statsRes, activityRes] = await Promise.all([
+                    fetch("/stats"),
+                    fetch("/activity")
+                ]);
+
+                const statsData = await statsRes.json();
+                const activityData = await activityRes.json();
+
+                document.getElementById("fetchCount").innerText = statsData.totalFetches.toLocaleString();
+
+                renderChart(activityData);
+            } catch (err) {
+                console.error("Failed to load data:", err);
+            }
+        }
+
+        let chartInstance = null;
+
+        function renderChart(activity) {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+
+            // Process activity data for the last 7 days (hourly or daily)
+            // For simplicity and readability on the chart, let's group by day if there are many data points,
+            // or show hourly if we are just starting.
+            // Let's generate labels for the last 24 hours to start with a detailed view, 
+            // or last 7 days daily view. The user asked for "last 7 days".
+
+            // Helper to get last 12 days formatted keys
+            const labels = [];
+            const dataPoints = [];
+            const now = new Date();
+
+            // Generate last 12 days labels
+            for (let i = 11; i >= 0; i--) {
+                const d = new Date(now);
+                d.setDate(d.getDate() - i);
+                const dayStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                labels.push(dayStr);
+
+                // Aggregate counts for this day from the hourly buckets
+                let dailyCount = 0;
+                // Format: YYYY-MM-DD
+                const searchKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+                Object.keys(activity).forEach(key => {
+                    if (key.startsWith(searchKey)) {
+                        dailyCount += activity[key];
+                    }
+                });
+                dataPoints.push(dailyCount);
+            }
+
+            if (chartInstance) {
+                chartInstance.data.labels = labels;
+                chartInstance.data.datasets[0].data = dataPoints;
+                chartInstance.update();
+            } else {
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'API Calls',
+                            data: dataPoints,
+                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                            borderColor: 'rgba(255, 255, 255, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: '#aaaaaa'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#aaaaaa'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Load immediately
+        loadStats();
+
+        // Poll every 2 seconds
+        setInterval(loadStats, 2000);
+    </script>
+</body>
+
+</html>

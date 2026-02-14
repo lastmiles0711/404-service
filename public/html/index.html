@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404-as-a-Service. by lastmiles</title>
-    <link rel="icon" type="image/png" href="/no.png">
+    <title>404-Service. by lastmiles</title>
+    <link rel="icon" type="image/png" href="/assets/no.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
@@ -20,10 +20,6 @@
         <header>
             <h1>404-as-a-Service</h1>
             <p class="tagline">Make unique looking 404 pages</p>
-            <p class="credit">
-                by <a href="https://lastmiles.site" target="_blank">lastmiles</a> — based on <a
-                    href="https://github.com/hotheadhacker/no-as-a-service" target="_blank">no-as-a-service</a>
-            </p>
         </header>
 
         <div class="card">
@@ -41,7 +37,7 @@
 
             <div class="preview-section">
                 <div class="preview-header">
-                    <span class="section-title">API Preview</span>
+                    <span class="section-title">Response Preview</span>
                     <span class="preview-output-hint">Output: JSON: { "reason": "..." }</span>
                 </div>
                 <div id="preview" class="preview-box">
@@ -50,17 +46,24 @@
                 <button onclick="fetchReason()" class="btn" id="fetchBtn">Test Output </button>
 
                 <div class="stats">
-                    Total API fetches: <span id="fetchCount" class="stats-count">...</span>
+                    <a href="/dashboard" class="btn"
+                        style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); display: block; width: 100%; text-align: center; text-decoration: none;">View
+                        Stats</a>
                 </div>
             </div>
         </div>
 
         <footer>
-            <a href="https://github.com/lastmiles0711/404-service" target="_blank">⭐ Star on GitHub</a>
+            <p class="credit">
+                by <a href="https://lastmiles.site" target="_blank">lastmiles</a> — based on <a
+                    href="https://github.com/hotheadhacker/no-as-a-service" target="_blank">no-as-a-service</a>
+            </p>
+            <a href="https://github.com/lastmiles0711/404-service" target="_blank" class="star-link">⭐ Star on
+                GitHub</a>
         </footer>
     </main>
 
-    <script src="scripts/app.js"></script>
+    <script src="/js/app.js"></script>
 </body>
 
 </html>

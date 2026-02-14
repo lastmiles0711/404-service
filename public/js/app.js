@@ -34,7 +34,9 @@ async function fetchJson(url) {
 }
 
 function updateStats(stats) {
-  $fetchCount.innerText = stats.totalFetches.toLocaleString();
+  if ($fetchCount) {
+    $fetchCount.innerText = stats.totalFetches.toLocaleString();
+  }
 }
 
 async function loadConfig() {
@@ -72,7 +74,7 @@ async function fetchReason() {
           const stats = await fetchJson("/stats");
           updateStats(stats);
         } catch (_) {
-          /* ignore */
+
         }
       }, 200);
     }, 400);
