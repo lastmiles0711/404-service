@@ -61,6 +61,8 @@ let analytics = {
   referrer: {}
 };
 
+const BOT_PATTERN = /bot|crawler|spider|slurp|lighthouse|curl|python|wget|go-http-client|node-fetch|axios|headless/i;
+
 if (fs.existsSync(ANALYTICS_FILE)) {
   try {
     analytics = JSON.parse(fs.readFileSync(ANALYTICS_FILE, "utf-8"));
@@ -123,20 +125,25 @@ function updateAnalytics(req) {
   const referer = req.headers["referer"] || "Direct";
   const ip = req.headers["cf-connecting-ip"] || req.ip || "127.0.0.1";
 
-  // 1. Browser & OS Detection (Primitive)
-  let browser = "Other";
-  if (userAgent.includes("Chrome")) browser = "Chrome";
-  else if (userAgent.includes("Firefox")) browser = "Firefox";
-  else if (userAgent.includes("Safari")) browser = "Safari";
-  else if (userAgent.includes("Edge")) browser = "Edge";
-  else if (userAgent.includes("MSIE") || userAgent.includes("Trident")) browser = "IE";
+  // 1. Bot Detection
+  // Basic bot filtering (Googlebot, Bingbot, YandexBot, etc. + scripts like curl/python)
+  if (BOT_PATTERN.test(userAgent)) {
+    browser = "Bot";
+    os = "Bot";
+  } else {
+    // Standard Browser & OS Detection (Primitive)
+    if (userAgent.includes("Chrome")) browser = "Chrome";
+    else if (userAgent.includes("Firefox")) browser = "Firefox";
+    else if (userAgent.includes("Safari")) browser = "Safari";
+    else if (userAgent.includes("Edge")) browser = "Edge";
+    else if (userAgent.includes("MSIE") || userAgent.includes("Trident")) browser = "IE";
 
-  let os = "Other";
-  if (userAgent.includes("Windows")) os = "Windows";
-  else if (userAgent.includes("Mac OS")) os = "macOS";
-  else if (userAgent.includes("Linux")) os = "Linux";
-  else if (userAgent.includes("Android")) os = "Android";
-  else if (userAgent.includes("iOS") || userAgent.includes("iPhone") || userAgent.includes("iPad")) os = "iOS";
+    if (userAgent.includes("Windows")) os = "Windows";
+    else if (userAgent.includes("Mac OS")) os = "macOS";
+    else if (userAgent.includes("Linux")) os = "Linux";
+    else if (userAgent.includes("Android")) os = "Android";
+    else if (userAgent.includes("iOS") || userAgent.includes("iPhone") || userAgent.includes("iPad")) os = "iOS";
+  }
 
   // 2. Country Lookup
   const geo = geoip.lookup(ip);
@@ -218,18 +225,47 @@ app.get("/analytics", (req, res) => {
   res.json(analytics);
 });
 
+// Map to track bot requests: IP -> { count, startTime }
+const botRequests = new Map();
+
+function checkBotLimit(ip) {
+  const limit = 5;
+  const timeWindow = 60 * 1000; // 1 minute
+  const now = Date.now();
+
+  if (!botRequests.has(ip)) {
+    botRequests.set(ip, { count: 1, startTime: now });
+    return false;
+  }
+
+  const requestData = botRequests.get(ip);
+
+  if (now - requestData.startTime > timeWindow) {
+    // Reset window
+    botRequests.set(ip, { count: 1, startTime: now });
+    return false;
+  }
+
+  if (requestData.count >= limit) {
+    return true; // Limit exceeded
+  }
+
+  requestData.count++;
+  botRequests.set(ip, requestData);
+  return false;
+}
+
 // Random rejection reason endpoint — returns HTTP 404
 app.get("/reason", (req, res) => {
   const userAgent = req.headers["user-agent"] || "";
   const ip = req.headers["cf-connecting-ip"] || req.ip;
 
-  // Basic bot filtering (Googlebot, Bingbot, YandexBot, etc. + scripts like curl/python)
-  const botPattern = /bot|crawler|spider|slurp|lighthouse|curl|python|wget|go-http-client|node-fetch|axios|headless/i;
-  const isBot = botPattern.test(userAgent);
+  const isBot = BOT_PATTERN.test(userAgent);
 
   if (isBot) {
-    // Don't log or count bots, just return 403
-    return res.status(403).json({ error: "Access denied for automated agents." });
+    if (checkBotLimit(ip)) {
+      return res.status(403).json({ error: "Access denied for automated agents." });
+    }
   }
 
   // Only log and count legitimate (non-bot) requests
