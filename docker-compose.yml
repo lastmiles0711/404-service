@@ -21,6 +21,7 @@ services:
   web:
     build:
       context: .
+    user: "1000:1000"
     environment:
       - PORT=3000
       - PUBLIC_URL=https://${DOMAIN}
@@ -39,8 +40,7 @@ services:
       # Service port
       - "traefik.http.services.web.loadbalancer.server.port=3000"
     volumes:
-      - ./stats.json:/app/stats.json
-      - ./activity.json:/app/activity.json
+      - ./data:/app/data
 
 volumes:
   letsencrypt:

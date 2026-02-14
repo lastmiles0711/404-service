@@ -63,6 +63,33 @@
             background: rgba(255, 255, 255, 0.05);
             transform: translateY(-1px);
         }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .chart-box {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 1rem;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-title {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
     </style>
 </head>
 
@@ -81,6 +108,34 @@
             <div class="chart-container">
                 <canvas id="activityChart"></canvas>
             </div>
+
+            <!-- Analytics Grid -->
+            <div class="charts-grid">
+                <div class="chart-box">
+                    <div class="chart-title">Browser</div>
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="browserChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">OS</div>
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="osChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">Top Countries</div>
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="countryChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title">Referrers</div>
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="referrerChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div style="text-align: center;">
@@ -98,34 +153,33 @@
     </main>
 
     <script>
+        let chartInstances = {};
+
         async function loadStats() {
             try {
-                const [statsRes, activityRes] = await Promise.all([
+                const [statsRes, activityRes, analyticsRes] = await Promise.all([
                     fetch("/stats"),
-                    fetch("/activity")
+                    fetch("/activity"),
+                    fetch("/analytics")
                 ]);
 
                 const statsData = await statsRes.json();
                 const activityData = await activityRes.json();
+                const analyticsData = await analyticsRes.json();
 
                 document.getElementById("fetchCount").innerText = statsData.totalFetches.toLocaleString();
 
-                renderChart(activityData);
+                renderActivityChart(activityData);
+                renderAnalyticsCharts(analyticsData);
             } catch (err) {
                 console.error("Failed to load data:", err);
             }
         }
 
-        let chartInstance = null;
+        let activityChartInstance = null;
 
-        function renderChart(activity) {
+        function renderActivityChart(activity) {
             const ctx = document.getElementById('activityChart').getContext('2d');
-
-            // Process activity data for the last 7 days (hourly or daily)
-            // For simplicity and readability on the chart, let's group by day if there are many data points,
-            // or show hourly if we are just starting.
-            // Let's generate labels for the last 24 hours to start with a detailed view, 
-            // or last 7 days daily view. The user asked for "last 7 days".
 
             // Helper to get last 12 days formatted keys
             const labels = [];
@@ -152,12 +206,12 @@
                 dataPoints.push(dailyCount);
             }
 
-            if (chartInstance) {
-                chartInstance.data.labels = labels;
-                chartInstance.data.datasets[0].data = dataPoints;
-                chartInstance.update();
+            if (activityChartInstance) {
+                activityChartInstance.data.labels = labels;
+                activityChartInstance.data.datasets[0].data = dataPoints;
+                activityChartInstance.update();
             } else {
-                chartInstance = new Chart(ctx, {
+                activityChartInstance = new Chart(ctx, {
                     type: 'bar',
                     data: {
                         labels: labels,
@@ -176,27 +230,82 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(255, 255, 255, 0.1)'
-                                },
-                                ticks: {
-                                    color: '#aaaaaa'
-                                }
+                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                                ticks: { color: '#aaaaaa' }
                             },
                             x: {
-                                grid: {
-                                    display: false
-                                },
-                                ticks: {
-                                    color: '#aaaaaa'
-                                }
+                                grid: { display: false },
+                                ticks: { color: '#aaaaaa' }
                             }
                         },
                         plugins: {
-                            legend: {
-                                display: false
-                            }
+                            legend: { display: false }
                         }
+                    }
+                });
+            }
+        }
+
+        function renderAnalyticsCharts(data) {
+            renderDoughnutChart('browserChart', 'Browsers', data.browser);
+            renderDoughnutChart('osChart', 'OS', data.os);
+            renderDoughnutChart('countryChart', 'Countries', data.country);
+            renderDoughnutChart('referrerChart', 'Referrers', data.referrer);
+        }
+
+        function renderDoughnutChart(canvasId, label, dataObj) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            const labels = Object.keys(dataObj);
+            const data = Object.values(dataObj);
+
+            // Sort by value desc
+            const sortedIndices = data.map((val, i) => [val, i]).sort((a, b) => b[0] - a[0]);
+            const sortedLabels = sortedIndices.map(item => labels[item[1]]);
+            const sortedData = sortedIndices.map(item => item[0]);
+
+            // Top 8 + Others
+            let finalLabels = sortedLabels;
+            let finalData = sortedData;
+
+            if (sortedLabels.length > 8) {
+                finalLabels = sortedLabels.slice(0, 8);
+                finalData = sortedData.slice(0, 8);
+                const otherCount = sortedData.slice(8).reduce((a, b) => a + b, 0);
+                finalLabels.push("Others");
+                finalData.push(otherCount);
+            }
+
+            const colors = [
+                'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
+                'rgba(201, 203, 207, 0.8)', 'rgba(100, 100, 100, 0.8)', 'rgba(255, 255, 255, 0.5)'
+            ];
+
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].data.labels = finalLabels;
+                chartInstances[canvasId].data.datasets[0].data = finalData;
+                chartInstances[canvasId].update();
+            } else {
+                chartInstances[canvasId] = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: finalLabels,
+                        datasets: [{
+                            data: finalData,
+                            backgroundColor: colors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { color: '#ccc', boxWidth: 12, font: { size: 10 } }
+                            }
+                        },
+                        cutout: '60%'
                     }
                 });
             }
@@ -205,8 +314,8 @@
         // Load immediately
         loadStats();
 
-        // Poll every 2 seconds
-        setInterval(loadStats, 2000);
+        // Poll every 5 seconds (reduced freq for analytics)
+        setInterval(loadStats, 5000);
     </script>
 </body>
 

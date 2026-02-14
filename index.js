@@ -2,17 +2,23 @@ const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const fs = require("fs");
+const geoip = require("geoip-lite");
 
 const app = express();
 app.use(cors());
 app.set("trust proxy", true);
 const PORT = process.env.PORT || 3000;
 
+// ensure data directory exists
+if (!fs.existsSync("./data")) {
+  fs.mkdirSync("./data");
+}
+
 // Load reasons from JSON
 const reasons = JSON.parse(fs.readFileSync("./reasons.json", "utf-8"));
 
 // Stats persistence
-const STATS_FILE = "./stats.json";
+const STATS_FILE = "./data/stats.json";
 let stats = { totalFetches: 0 };
 
 if (fs.existsSync(STATS_FILE)) {
@@ -31,7 +37,7 @@ function saveStats() {
 }
 
 // Activity persistence
-const ACTIVITY_FILE = "./activity.json";
+const ACTIVITY_FILE = "./data/activity.json";
 let activity = {};
 
 if (fs.existsSync(ACTIVITY_FILE)) {
@@ -44,6 +50,32 @@ if (fs.existsSync(ACTIVITY_FILE)) {
 
 function saveActivity() {
   fs.writeFileSync(ACTIVITY_FILE, JSON.stringify(activity, null, 2));
+}
+
+// Analytics persistence
+const ANALYTICS_FILE = "./data/analytics.json";
+let analytics = {
+  browser: {},
+  os: {},
+  country: {},
+  referrer: {}
+};
+
+if (fs.existsSync(ANALYTICS_FILE)) {
+  try {
+    analytics = JSON.parse(fs.readFileSync(ANALYTICS_FILE, "utf-8"));
+    // Ensure structure
+    if (!analytics.browser) analytics.browser = {};
+    if (!analytics.os) analytics.os = {};
+    if (!analytics.country) analytics.country = {};
+    if (!analytics.referrer) analytics.referrer = {};
+  } catch (err) {
+    console.error("Error loading analytics:", err);
+  }
+}
+
+function saveAnalytics() {
+  fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
 }
 
 function trackActivity() {
@@ -84,6 +116,57 @@ function cleanupOldActivity() {
 function incrementCounter() {
   stats.totalFetches++;
   saveStats();
+}
+
+function updateAnalytics(req) {
+  const userAgent = req.headers["user-agent"] || "Unknown";
+  const referer = req.headers["referer"] || "Direct";
+  const ip = req.headers["cf-connecting-ip"] || req.ip || "127.0.0.1";
+
+  // 1. Browser & OS Detection (Primitive)
+  let browser = "Other";
+  if (userAgent.includes("Chrome")) browser = "Chrome";
+  else if (userAgent.includes("Firefox")) browser = "Firefox";
+  else if (userAgent.includes("Safari")) browser = "Safari";
+  else if (userAgent.includes("Edge")) browser = "Edge";
+  else if (userAgent.includes("MSIE") || userAgent.includes("Trident")) browser = "IE";
+
+  let os = "Other";
+  if (userAgent.includes("Windows")) os = "Windows";
+  else if (userAgent.includes("Mac OS")) os = "macOS";
+  else if (userAgent.includes("Linux")) os = "Linux";
+  else if (userAgent.includes("Android")) os = "Android";
+  else if (userAgent.includes("iOS") || userAgent.includes("iPhone") || userAgent.includes("iPad")) os = "iOS";
+
+  // 2. Country Lookup
+  const geo = geoip.lookup(ip);
+  const country = geo ? geo.country : "Unknown";
+
+  // 3. Referrer Clean-up (Domain only)
+  let referrerDomain = "Direct";
+  if (referer !== "Direct") {
+    try {
+      const url = new URL(referer);
+      referrerDomain = url.hostname;
+    } catch (e) {
+      referrerDomain = "Other";
+    }
+  }
+
+  // 4. Update Counts
+  if (!analytics.browser[browser]) analytics.browser[browser] = 0;
+  analytics.browser[browser]++;
+
+  if (!analytics.os[os]) analytics.os[os] = 0;
+  analytics.os[os]++;
+
+  if (!analytics.country[country]) analytics.country[country] = 0;
+  analytics.country[country]++;
+
+  if (!analytics.referrer[referrerDomain]) analytics.referrer[referrerDomain] = 0;
+  analytics.referrer[referrerDomain]++;
+
+  saveAnalytics();
 }
 
 // Rate limiter: 120 requests per minute per IP
@@ -130,13 +213,18 @@ app.get("/activity", (req, res) => {
   res.json(activity);
 });
 
+// Analytics endpoint
+app.get("/analytics", (req, res) => {
+  res.json(analytics);
+});
+
 // Random rejection reason endpoint — returns HTTP 404
 app.get("/reason", (req, res) => {
   const userAgent = req.headers["user-agent"] || "";
   const ip = req.headers["cf-connecting-ip"] || req.ip;
 
   // Basic bot filtering (Googlebot, Bingbot, YandexBot, etc. + scripts like curl/python)
-  const botPattern = /bot|crawler|spider|slurp|lighthouse|curl|python/i;
+  const botPattern = /bot|crawler|spider|slurp|lighthouse|curl|python|wget|go-http-client|node-fetch|axios|headless/i;
   const isBot = botPattern.test(userAgent);
 
   if (isBot) {
@@ -148,6 +236,7 @@ app.get("/reason", (req, res) => {
   console.log("[%s] Request from %s: %s", new Date().toISOString(), ip, userAgent);
   incrementCounter();
   trackActivity();
+  updateAnalytics(req);
 
   const reason = reasons[Math.floor(Math.random() * reasons.length)];
   res.status(404).json({ reason });

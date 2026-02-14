@@ -3,3 +3,5 @@ node_modules/
 .devcontainer.json
 package-lock.json
 *.log
+data/
+
