@@ -139,7 +139,7 @@ app.get("/reason", (req, res) => {
   console.log("[%s] Request from %s: %s", new Date().toISOString(), ip, userAgent);
 
   // Basic bot filtering (Googlebot, Bingbot, YandexBot, etc.)
-  const botPattern = /bot|crawler|spider|slurp|lighthouse/i;
+  const botPattern = /bot|crawler|spider|slurp|lighthouse|curl|python/i;
   const isBot = botPattern.test(userAgent);
 
   if (!isBot) {

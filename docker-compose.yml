@@ -38,6 +38,9 @@ services:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
       # Service port
       - "traefik.http.services.web.loadbalancer.server.port=3000"
+    volumes:
+      - ./stats.json:/app/stats.json
+      - ./activity.json:/app/activity.json
 
 volumes:
   letsencrypt:
