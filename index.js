@@ -135,19 +135,19 @@ app.get("/reason", (req, res) => {
   const userAgent = req.headers["user-agent"] || "";
   const ip = req.headers["cf-connecting-ip"] || req.ip;
 
-  // Logging for investigation
-  console.log("[%s] Request from %s: %s", new Date().toISOString(), ip, userAgent);
-
-  // Basic bot filtering (Googlebot, Bingbot, YandexBot, etc.)
+  // Basic bot filtering (Googlebot, Bingbot, YandexBot, etc. + scripts like curl/python)
   const botPattern = /bot|crawler|spider|slurp|lighthouse|curl|python/i;
   const isBot = botPattern.test(userAgent);
 
-  if (!isBot) {
-    incrementCounter();
-    trackActivity();
-  } else {
-    console.log("[%s] Bot detected, skipping counter increment: %s", new Date().toISOString(), userAgent);
+  if (isBot) {
+    // Don't log or count bots, just return 403
+    return res.status(403).json({ error: "Access denied for automated agents." });
   }
+
+  // Only log and count legitimate (non-bot) requests
+  console.log("[%s] Request from %s: %s", new Date().toISOString(), ip, userAgent);
+  incrementCounter();
+  trackActivity();
 
   const reason = reasons[Math.floor(Math.random() * reasons.length)];
   res.status(404).json({ reason });
