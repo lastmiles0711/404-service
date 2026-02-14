@@ -132,8 +132,23 @@ app.get("/activity", (req, res) => {
 
 // Random rejection reason endpoint — returns HTTP 404
 app.get("/reason", (req, res) => {
-  incrementCounter();
-  trackActivity();
+  const userAgent = req.headers["user-agent"] || "";
+  const ip = req.headers["cf-connecting-ip"] || req.ip;
+
+  // Logging for investigation
+  console.log("[%s] Request from %s: %s", new Date().toISOString(), ip, userAgent);
+
+  // Basic bot filtering (Googlebot, Bingbot, YandexBot, etc.)
+  const botPattern = /bot|crawler|spider|slurp|lighthouse/i;
+  const isBot = botPattern.test(userAgent);
+
+  if (!isBot) {
+    incrementCounter();
+    trackActivity();
+  } else {
+    console.log("[%s] Bot detected, skipping counter increment: %s", new Date().toISOString(), userAgent);
+  }
+
   const reason = reasons[Math.floor(Math.random() * reasons.length)];
   res.status(404).json({ reason });
 });
