@@ -1,6 +1,15 @@
 {
-  "browser": {},
-  "os": {},
-  "country": {},
-  "referrer": {}
+  "browser": {
+    "Chrome": 12
+  },
+  "os": {
+    "Linux": 12
+  },
+  "country": {
+    "Unknown": 12
+  },
+  "referrer": {
+    "localhost": 3,
+    "Direct": 9
+  }
 }
