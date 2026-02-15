@@ -17,7 +17,6 @@ router.get("/reason", (req, res) => {
         return res.status(403).json({ error: "Access denied for automated agents." });
     }
 
-    const referer = req.headers["referer"] || "Direct";
     let browser = "Other";
     if (userAgent.includes("Chrome")) browser = "Chrome";
     else if (userAgent.includes("Firefox")) browser = "Firefox";
@@ -35,19 +34,9 @@ router.get("/reason", (req, res) => {
     const geo = geoip.lookup(ip || "127.0.0.1");
     const country = geo ? geo.country : "Unknown";
 
-    let referrerDomain = "Direct";
-    if (referer !== "Direct") {
-        try {
-            const url = new URL(referer);
-            referrerDomain = url.hostname;
-        } catch (e) {
-            referrerDomain = "Other";
-        }
-    }
-
     storage.incrementCounter();
     storage.trackActivity();
-    storage.updateAnalytics(browser, os, country, referrerDomain);
+    storage.updateAnalytics(browser, os, country);
 
     const reason = reasons[Math.floor(Math.random() * reasons.length)];
     res.status(404).json({ reason });

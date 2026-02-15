@@ -36,32 +36,25 @@
             <!-- Analytics Grid -->
             <div class="charts-grid">
                 <div class="chart-box">
-                    <div class="chart-title">Browser</div>
+                    <div class="chart-title">Browser Distribution</div>
                     <div class="chart-wrapper">
                         <canvas id="browserChart"></canvas>
                     </div>
                     <div id="browserChart-legend" class="chart-legend"></div>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">OS</div>
+                    <div class="chart-title">Operating System</div>
                     <div class="chart-wrapper">
                         <canvas id="osChart"></canvas>
                     </div>
                     <div id="osChart-legend" class="chart-legend"></div>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">Top Countries</div>
+                    <div class="chart-title">Geographic Distribution</div>
                     <div class="chart-wrapper">
                         <canvas id="countryChart"></canvas>
                     </div>
                     <div id="countryChart-legend" class="chart-legend"></div>
-                </div>
-                <div class="chart-box">
-                    <div class="chart-title">Referrers</div>
-                    <div class="chart-wrapper">
-                        <canvas id="referrerChart"></canvas>
-                    </div>
-                    <div id="referrerChart-legend" class="chart-legend"></div>
                 </div>
             </div>
         </div>
@@ -145,10 +138,11 @@
                         datasets: [{
                             label: 'API Calls',
                             data: dataPoints,
-                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                            borderColor: 'rgba(255, 255, 255, 1)',
-                            borderWidth: 1,
-                            borderRadius: 4
+                            backgroundColor: 'rgba(96, 165, 250, 0.8)',
+                            borderColor: 'rgba(96, 165, 250, 1)',
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            hoverBackgroundColor: 'rgba(96, 165, 250, 0.95)',
                         }]
                     },
                     options: {
@@ -157,16 +151,36 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { color: '#aaaaaa' }
+                                grid: { 
+                                    color: 'rgba(255, 255, 255, 0.08)',
+                                    borderColor: 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: { 
+                                    color: '#aaaaaa',
+                                    font: { size: 12 }
+                                }
                             },
                             x: {
                                 grid: { display: false },
-                                ticks: { color: '#aaaaaa' }
+                                ticks: { 
+                                    color: '#aaaaaa',
+                                    font: { size: 11 },
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
                             }
                         },
                         plugins: {
-                            legend: { display: false }
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: 'rgba(96, 165, 250, 0.5)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12
+                            }
                         }
                     }
                 });
@@ -177,7 +191,6 @@
             renderDoughnutChart('browserChart', 'Browsers', data.browser);
             renderDoughnutChart('osChart', 'OS', data.os);
             renderDoughnutChart('countryChart', 'Countries', data.country);
-            renderDoughnutChart('referrerChart', 'Referrers', data.referrer);
         }
 
         function renderDoughnutChart(canvasId, label, dataObj) {
@@ -203,9 +216,15 @@
             }
 
             const colors = [
-                'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)',
-                'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
-                'rgba(201, 203, 207, 0.8)', 'rgba(100, 100, 100, 0.8)', 'rgba(255, 255, 255, 0.5)'
+                'rgba(96, 165, 250, 0.9)',    // Blue
+                'rgba(167, 139, 250, 0.9)',   // Purple
+                'rgba(244, 114, 182, 0.9)',   // Pink
+                'rgba(248, 113, 113, 0.9)',   // Red
+                'rgba(251, 146, 60, 0.9)',    // Orange
+                'rgba(250, 204, 21, 0.9)',    // Yellow
+                'rgba(52, 211, 153, 0.9)',    // Emerald
+                'rgba(34, 197, 94, 0.9)',     // Green
+                'rgba(156, 163, 175, 0.7)'    // Gray for "Others"
             ];
 
             if (chartInstances[canvasId]) {
@@ -220,7 +239,10 @@
                         datasets: [{
                             data: finalData,
                             backgroundColor: colors,
-                            borderWidth: 0
+                            borderWidth: 2,
+                            borderColor: 'rgba(0, 0, 0, 0.5)',
+                            hoverBorderColor: 'rgba(255, 255, 255, 0.3)',
+                            hoverBorderWidth: 3
                         }]
                     },
                     options: {
@@ -229,9 +251,27 @@
                         plugins: {
                             legend: {
                                 display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: 'rgba(96, 165, 250, 0.5)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12,
+                                displayColors: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
                             }
                         },
-                        cutout: '75%'
+                        cutout: '70%'
                     }
                 });
             }
