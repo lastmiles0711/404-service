@@ -88,8 +88,7 @@ const ANALYTICS_FILE = path.join(DATA_DIR, "analytics.json");
 let analytics = {
     browser: {},
     os: {},
-    country: {},
-    referrer: {}
+    country: {}
 };
 
 if (fs.existsSync(ANALYTICS_FILE)) {
@@ -98,7 +97,6 @@ if (fs.existsSync(ANALYTICS_FILE)) {
         if (!analytics.browser) analytics.browser = {};
         if (!analytics.os) analytics.os = {};
         if (!analytics.country) analytics.country = {};
-        if (!analytics.referrer) analytics.referrer = {};
     } catch (err) {
         console.error("Error loading analytics:", err);
     }
@@ -108,7 +106,7 @@ function saveAnalytics() {
     fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
 }
 
-function updateAnalytics(browser, os, country, referrerDomain) {
+function updateAnalytics(browser, os, country) {
     if (!analytics.browser[browser]) analytics.browser[browser] = 0;
     analytics.browser[browser]++;
 
@@ -117,9 +115,6 @@ function updateAnalytics(browser, os, country, referrerDomain) {
 
     if (!analytics.country[country]) analytics.country[country] = 0;
     analytics.country[country]++;
-
-    if (!analytics.referrer[referrerDomain]) analytics.referrer[referrerDomain] = 0;
-    analytics.referrer[referrerDomain]++;
 
     saveAnalytics();
 }

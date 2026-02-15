@@ -22,12 +22,14 @@
     <main class="dashboard-main">
         <header>
             <h1>Service Statistics</h1>
-
+            <p class="subtitle">Real-time analytics and insights</p>
         </header>
 
         <div class="card dashboard-card">
-            <div class="stats-label">Total API Fetches</div>
-            <div id="fetchCount" class="stats-big">...</div>
+            <div class="stats-highlight">
+                <div class="stats-label">Total API Fetches</div>
+                <div id="fetchCount" class="stats-big">...</div>
+            </div>
 
             <div class="chart-container">
                 <canvas id="activityChart"></canvas>
@@ -36,32 +38,25 @@
             <!-- Analytics Grid -->
             <div class="charts-grid">
                 <div class="chart-box">
-                    <div class="chart-title">Browser</div>
+                    <div class="chart-title">🌐 Browsers</div>
                     <div class="chart-wrapper">
                         <canvas id="browserChart"></canvas>
                     </div>
                     <div id="browserChart-legend" class="chart-legend"></div>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">OS</div>
+                    <div class="chart-title">💻 Operating Systems</div>
                     <div class="chart-wrapper">
                         <canvas id="osChart"></canvas>
                     </div>
                     <div id="osChart-legend" class="chart-legend"></div>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">Top Countries</div>
+                    <div class="chart-title">🌍 Top Countries</div>
                     <div class="chart-wrapper">
                         <canvas id="countryChart"></canvas>
                     </div>
                     <div id="countryChart-legend" class="chart-legend"></div>
-                </div>
-                <div class="chart-box">
-                    <div class="chart-title">Referrers</div>
-                    <div class="chart-wrapper">
-                        <canvas id="referrerChart"></canvas>
-                    </div>
-                    <div id="referrerChart-legend" class="chart-legend"></div>
                 </div>
             </div>
         </div>
@@ -145,10 +140,11 @@
                         datasets: [{
                             label: 'API Calls',
                             data: dataPoints,
-                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                            borderColor: 'rgba(255, 255, 255, 1)',
-                            borderWidth: 1,
-                            borderRadius: 4
+                            backgroundColor: createGradient(ctx),
+                            borderColor: 'rgba(99, 102, 241, 1)',
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            borderSkipped: false
                         }]
                     },
                     options: {
@@ -157,27 +153,50 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { color: '#aaaaaa' }
+                                grid: { 
+                                    color: 'rgba(255, 255, 255, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: { 
+                                    color: '#888',
+                                    font: { family: 'Inter', size: 11 }
+                                }
                             },
                             x: {
                                 grid: { display: false },
-                                ticks: { color: '#aaaaaa' }
+                                ticks: { 
+                                    color: '#888',
+                                    font: { family: 'Inter', size: 11 }
+                                }
                             }
                         },
                         plugins: {
-                            legend: { display: false }
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: { family: 'Inter', size: 13 },
+                                bodyFont: { family: 'Inter', size: 12 },
+                                borderColor: 'rgba(99, 102, 241, 0.3)',
+                                borderWidth: 1
+                            }
                         }
                     }
                 });
             }
         }
 
+        function createGradient(ctx) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.8)');
+            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.3)');
+            return gradient;
+        }
+
         function renderAnalyticsCharts(data) {
             renderDoughnutChart('browserChart', 'Browsers', data.browser);
             renderDoughnutChart('osChart', 'OS', data.os);
             renderDoughnutChart('countryChart', 'Countries', data.country);
-            renderDoughnutChart('referrerChart', 'Referrers', data.referrer);
         }
 
         function renderDoughnutChart(canvasId, label, dataObj) {
@@ -203,9 +222,15 @@
             }
 
             const colors = [
-                'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)',
-                'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
-                'rgba(201, 203, 207, 0.8)', 'rgba(100, 100, 100, 0.8)', 'rgba(255, 255, 255, 0.5)'
+                'rgba(99, 102, 241, 0.85)',   // Indigo
+                'rgba(139, 92, 246, 0.85)',   // Purple
+                'rgba(236, 72, 153, 0.85)',   // Pink
+                'rgba(251, 146, 60, 0.85)',   // Orange
+                'rgba(34, 197, 94, 0.85)',    // Green
+                'rgba(14, 165, 233, 0.85)',   // Sky
+                'rgba(244, 63, 94, 0.85)',    // Rose
+                'rgba(168, 85, 247, 0.85)',   // Violet
+                'rgba(100, 116, 139, 0.6)'    // Slate (for Others)
             ];
 
             if (chartInstances[canvasId]) {
@@ -220,18 +245,32 @@
                         datasets: [{
                             data: finalData,
                             backgroundColor: colors,
-                            borderWidth: 0
+                            borderWidth: 0,
+                            hoverOffset: 8
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: {
-                                display: false
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                titleFont: { family: 'Inter', size: 13 },
+                                bodyFont: { family: 'Inter', size: 12 },
+                                borderColor: 'rgba(99, 102, 241, 0.3)',
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return `${context.label}: ${context.parsed} (${percentage}%)`;
+                                    }
+                                }
                             }
                         },
-                        cutout: '75%'
+                        cutout: '70%'
                     }
                 });
             }
@@ -239,9 +278,12 @@
             // Render Custom Legend
             const legendContainer = document.getElementById(canvasId + '-legend');
             legendContainer.innerHTML = '';
+            const total = finalData.reduce((a, b) => a + b, 0);
+            
             finalLabels.forEach((label, index) => {
                 const color = colors[index % colors.length];
                 const value = finalData[index];
+                const percentage = ((value / total) * 100).toFixed(1);
 
                 const item = document.createElement('div');
                 item.className = 'legend-item';
@@ -251,7 +293,7 @@
                 colorBox.style.backgroundColor = color;
 
                 const text = document.createElement('span');
-                text.innerText = `${label}`; // (${value}) if we want numbers
+                text.innerHTML = `<strong>${label}</strong> <span class="legend-value">${percentage}%</span>`;
 
                 item.appendChild(colorBox);
                 item.appendChild(text);
@@ -262,7 +304,7 @@
         // Load immediately
         loadStats();
 
-        // Poll every 5 seconds (reduced freq for analytics)
+        // Poll every 5 seconds
         setInterval(loadStats, 5000);
     </script>
 </body>
