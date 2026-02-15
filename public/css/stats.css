@@ -251,7 +251,6 @@
 }
 
 .chart-legend {
-    margin-top: auto;
     padding-top: 1.5rem;
     display: flex;
     flex-direction: column;

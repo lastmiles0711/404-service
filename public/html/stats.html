@@ -426,10 +426,10 @@
             let finalLabels = sortedLabels;
             let finalData = sortedData;
 
-            if (sortedLabels.length > 8) {
-                finalLabels = sortedLabels.slice(0, 8);
-                finalData = sortedData.slice(0, 8);
-                const otherCount = sortedData.slice(8).reduce((a, b) => a + b, 0);
+            if (sortedLabels.length > 5) {
+                finalLabels = sortedLabels.slice(0, 5);
+                finalData = sortedData.slice(0, 5);
+                const otherCount = sortedData.slice(5).reduce((a, b) => a + b, 0);
                 finalLabels.push("Others");
                 finalData.push(otherCount);
             }
