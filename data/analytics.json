@@ -1,15 +1,16 @@
 {
   "browser": {
-    "Chrome": 12
+    "Chrome": 19,
+    "Other": 1,
+    "Firefox": 3,
+    "Safari": 2
   },
   "os": {
-    "Linux": 12
+    "Linux": 14,
+    "Windows": 4,
+    "macOS": 7
   },
   "country": {
-    "Unknown": 12
-  },
-  "referrer": {
-    "localhost": 3,
-    "Direct": 9
+    "Unknown": 25
   }
 }
