@@ -2,6 +2,7 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const geoip = require("geoip-lite");
+const UAParser = require("ua-parser-js");
 const storage = require("./storage");
 
 const router = express.Router();
@@ -17,19 +18,9 @@ router.get("/reason", (req, res) => {
         return res.status(403).json({ error: "Access denied for automated agents." });
     }
 
-    let browser = "Other";
-    if (userAgent.includes("Chrome")) browser = "Chrome";
-    else if (userAgent.includes("Firefox")) browser = "Firefox";
-    else if (userAgent.includes("Safari")) browser = "Safari";
-    else if (userAgent.includes("Edge")) browser = "Edge";
-    else if (userAgent.includes("MSIE") || userAgent.includes("Trident")) browser = "IE";
-
-    let os = "Other";
-    if (userAgent.includes("Windows")) os = "Windows";
-    else if (userAgent.includes("Mac OS")) os = "macOS";
-    else if (userAgent.includes("Linux")) os = "Linux";
-    else if (userAgent.includes("Android")) os = "Android";
-    else if (userAgent.includes("iOS") || userAgent.includes("iPhone") || userAgent.includes("iPad")) os = "iOS";
+    const ua = new UAParser(userAgent);
+    const browser = ua.getBrowser().name || "Other";
+    const os = ua.getOS().name || "Other";
 
     const geo = geoip.lookup(ip || "127.0.0.1");
     const country = geo ? geo.country : "Unknown";

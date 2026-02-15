@@ -13,6 +13,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/stats.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -33,18 +34,19 @@
                 <div id="fetchTrend" class="kpi-sub"></div>
             </div>
             <div class="card kpi-card">
-                <div class="kpi-label">Live (last hour)</div>
-                <div id="liveCount" class="kpi-value">—</div>
-                <div class="kpi-sub">active requests</div>
-            </div>
-            <div class="card kpi-card">
                 <div class="kpi-label">Top Browser</div>
-                <div id="topBrowser" class="kpi-value">—</div>
+                <div class="kpi-value-row">
+                    <span id="topBrowserIcon" class="kpi-icon"></span>
+                    <div id="topBrowser" class="kpi-value">—</div>
+                </div>
                 <div id="topBrowserPct" class="kpi-sub"></div>
             </div>
             <div class="card kpi-card">
                 <div class="kpi-label">Top Country</div>
-                <div id="topCountry" class="kpi-value">—</div>
+                <div class="kpi-value-row">
+                    <span id="topCountryFlag" class="kpi-icon"></span>
+                    <div id="topCountry" class="kpi-value">—</div>
+                </div>
                 <div id="topCountryPct" class="kpi-sub"></div>
             </div>
         </div>
@@ -116,6 +118,76 @@
             '#f43f5e', '#64748b', '#475569'
         ];
 
+        // Override map for names that don't match Simple Icons slugs directly
+        const ICON_OVERRIDES = {
+            'macos': 'apple',
+            'mac os': 'apple',
+            'ios': 'ios',
+            'ie': 'internetexplorer',
+            'internet explorer': 'internetexplorer',
+            'samsung internet': 'samsung',
+            'mobile safari': 'safari',
+            'chrome mobile': 'googlechrome',
+            'firefox mobile': 'firefox',
+            'edge mobile': 'microsoftedge',
+            'chrome headless': 'googlechrome',
+            'chrome webview': 'googlechrome',
+            'android browser': 'android',
+            'chrome': 'googlechrome',
+            'microsoft edge': 'microsoftedge',
+            'edge': 'microsoftedge',
+            'opera mini': 'opera',
+            'opera mobi': 'opera',
+            'opera gx': 'opera',
+            'opera coast': 'opera',
+            'huawei browser': 'huawei',
+            'miui browser': 'xiaomi',
+            'uc browser': 'ucbrowser',
+            'qq browser': 'tencentqq',
+            'duckduckgo': 'duckduckgo',
+            'tor browser': 'torbrowser',
+            'arch': 'archlinux',
+            'arch linux': 'archlinux',
+            'chrome os': 'googlechrome',
+            'chromium os': 'googlechrome',
+            'harmonyos': 'harmonyos',
+            'elementary os': 'elementary',
+            'manjaro': 'manjaro',
+            'mint': 'linuxmint',
+            'linux mint': 'linuxmint',
+            'pop!_os': 'popos',
+            'red hat': 'redhat',
+            'centos': 'centos',
+            'suse': 'opensuse',
+            'opensuse': 'opensuse',
+        };
+
+        function getIconSlug(name) {
+            const key = name.toLowerCase().trim();
+            if (ICON_OVERRIDES[key]) return ICON_OVERRIDES[key];
+            // Default: lowercase, remove spaces/dots/special chars
+            return key.replace(/[^a-z0-9]/g, '');
+        }
+
+        function createBrowserOrOSIcon(name) {
+            if (!name || name === 'Other' || name === 'Others') return null;
+            const slug = getIconSlug(name);
+            const img = document.createElement('img');
+            img.className = 'legend-icon';
+            img.src = `https://cdn.simpleicons.org/${slug}/white`;
+            img.alt = name;
+            img.loading = 'lazy';
+            img.onerror = function() { this.style.display = 'none'; };
+            return img;
+        }
+
+        function createCountryFlag(code) {
+            if (!code || code.toLowerCase() === 'unknown' || code === 'Others' || code === 'Other') return null;
+            const span = document.createElement('span');
+            span.className = `legend-flag fi fi-${code.toLowerCase()}`;
+            return span;
+        }
+
         async function loadStats() {
             try {
                 const [statsRes, activityRes, analyticsRes] = await Promise.all([
@@ -136,7 +208,6 @@
                 }
 
                 updateKPIs(analyticsData, activityData);
-                updateLiveCount(activityData);
                 cachedActivity = activityData;
                 renderActivityChart(activityData);
                 renderAnalyticsCharts(analyticsData);
@@ -191,10 +262,22 @@
             const topBrowser = getTopEntry(analytics.browser);
             document.getElementById("topBrowser").innerText = topBrowser.name;
             document.getElementById("topBrowserPct").innerText = topBrowser.pct > 0 ? `${topBrowser.pct}% of traffic` : '';
+            const browserIconEl = document.getElementById("topBrowserIcon");
+            browserIconEl.innerHTML = '';
+            if (topBrowser.name !== '—') {
+                const bIcon = createBrowserOrOSIcon(topBrowser.name);
+                if (bIcon) { bIcon.className = 'kpi-inline-icon'; browserIconEl.appendChild(bIcon); }
+            }
 
             const topCountry = getTopEntry(analytics.country);
             document.getElementById("topCountry").innerText = topCountry.name;
             document.getElementById("topCountryPct").innerText = topCountry.pct > 0 ? `${topCountry.pct}% of traffic` : '';
+            const countryFlagEl = document.getElementById("topCountryFlag");
+            countryFlagEl.innerHTML = '';
+            if (topCountry.name !== '—') {
+                const cFlag = createCountryFlag(topCountry.name);
+                if (cFlag) { cFlag.className += ' kpi-inline-flag'; countryFlagEl.appendChild(cFlag); }
+            }
 
             const todayCount = dayTotal(activity, 0);
             const yesterdayCount = dayTotal(activity, 1);
@@ -221,12 +304,6 @@
             }
 
             trendEl.innerHTML = parts.join('<span class="trend-sep">·</span>');
-        }
-
-        function updateLiveCount(activity) {
-            const now = new Date();
-            const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}`;
-            document.getElementById("liveCount").innerText = activity[curKey] || 0;
         }
 
         function renderActivityChart(activity) {
@@ -407,7 +484,19 @@
             const centerEl = document.getElementById(canvasId + '-center');
             if (centerEl && finalLabels.length > 0) {
                 const topPct = total > 0 ? Math.round((finalData[0] / total) * 100) : 0;
-                centerEl.innerHTML = `<span class="center-value">${topPct}%</span><span class="center-name">${finalLabels[0]}</span>`;
+                let centerIcon = '';
+                if (canvasId === 'countryChart') {
+                    const cc = finalLabels[0].toLowerCase();
+                    if (cc !== 'unknown' && cc !== 'others') {
+                        centerIcon = `<span class="fi fi-${cc} center-flag"></span>`;
+                    }
+                } else {
+                    const slug = getIconSlug(finalLabels[0]);
+                    if (finalLabels[0] !== 'Other' && finalLabels[0] !== 'Others') {
+                        centerIcon = `<img class="center-icon" src="https://cdn.simpleicons.org/${slug}/white" alt="${finalLabels[0]}" onerror="this.style.display='none'">`;
+                    }
+                }
+                centerEl.innerHTML = `<span class="center-value">${topPct}%</span>${centerIcon}<span class="center-name">${finalLabels[0]}</span>`;
             }
 
             const legendContainer = document.getElementById(canvasId + '-legend');
@@ -424,6 +513,14 @@
                 colorBox.className = 'legend-color';
                 colorBox.style.backgroundColor = color;
 
+                // Dynamically add icon based on chart type
+                let iconEl = null;
+                if (canvasId === 'browserChart' || canvasId === 'osChart') {
+                    iconEl = createBrowserOrOSIcon(label);
+                } else if (canvasId === 'countryChart') {
+                    iconEl = createCountryFlag(label);
+                }
+
                 const text = document.createElement('span');
                 text.className = 'legend-label';
                 text.innerText = label;
@@ -433,6 +530,7 @@
                 pctSpan.innerText = `${pct}%`;
 
                 item.appendChild(colorBox);
+                if (iconEl) item.appendChild(iconEl);
                 item.appendChild(text);
                 item.appendChild(pctSpan);
                 legendContainer.appendChild(item);
