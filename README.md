@@ -1,25 +1,16 @@
-<div align="center">
-  
-# 🚫 404-as-a-Service 🚫
+# 404-Service
 
-<img src="public/no.png" alt="404-as-a-Service" width="128">
+<img src="public/logo.png" alt="404-Service" width="128">
 
 
-**Ever needed a creative 404 page?**  
+**Ever needed a creative 404 page?**
 
-This tiny API returns random, hilarious, and sometimes poetic reasons why a page wasn't found.  
+This tiny API returns random, hilarious, and sometimes poetic reasons why a page wasn't found.
 
 *Perfectly suited for custom error pages, bots, dev tools, or just for laughs.*
 
 
-Built for **missing pages**, **abroken links**, and **humor**.
-
----
-
-**Based on the original [No-as-a-Service](https://github.com/hotheadhacker/no-as-a-service) by [hotheadhacker](https://github.com/hotheadhacker)**.  
-A huge thank you for the inspiration and the groundwork! 🙏
-
-</div>
+Built for **missing pages**, **broken links**, and **humor**.
 
 ---
 
@@ -112,7 +103,7 @@ Traefik will automatically obtain a Let's Encrypt certificate and serve your sit
 ---
 
 
-👤 Credits
+## 👤 Credits
 
 
 Created by [lastmiles0711](https://github.com/lastmiles0711).  
