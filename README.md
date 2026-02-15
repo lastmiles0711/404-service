@@ -166,7 +166,7 @@ Returns a random 404 message.
 ```
 
 **Status Codes:**
-- `200` - Success
+- `400 ` - Success
 - `429` - Rate limit exceeded
 
 ---
@@ -249,7 +249,6 @@ Contributions are welcome! Here's how you can help:
 - Improve documentation
 - Add new features
 - Fix bugs
-- Translate to other languages
 
 ---
 
@@ -277,7 +276,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**Made with ❤️ for the web**
+**Made with ❤️**
 
 [⬆ Back to Top](#-404-service)
 
