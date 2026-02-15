@@ -15,7 +15,7 @@ This lightweight API returns random, hilarious, and sometimes poetic reasons why
 
 *Perfect for custom error pages, bots, dev tools, or just for laughs.* ✨
 
-[Live Site (eu)](https://404-service.com/reason) • [Report Bug](https://github.com/lastmiles0711/404-service/issues) • [Request Feature](https://github.com/lastmiles0711/404-service/issues)
+[Live Site (EU)](https://404-service.com/reason) • [Report Bug](https://github.com/lastmiles0711/404-service/issues) • [Request Feature](https://github.com/lastmiles0711/404-service/issues)
 
 </div>
 
