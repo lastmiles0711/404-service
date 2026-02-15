@@ -14,55 +14,79 @@
     <link rel="stylesheet" href="/css/base.css">
     <link rel="stylesheet" href="/css/stats.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
 
 <body>
     <div class="glow"></div>
+    <div class="glow glow-right"></div>
     <main class="dashboard-main">
         <header>
             <h1>Service Statistics</h1>
-
+            <p class="header-sub">Real-time analytics for 404 API fetches</p>
+            <p class="header-sub">We store absolutely nothing. No IPs, no personal data — only anonymous aggregate stats</p>
         </header>
 
-        <div class="card dashboard-card">
-            <div class="stats-label">Total API Fetches</div>
-            <div id="fetchCount" class="stats-big">...</div>
+        <div class="kpi-row">
+            <div class="card kpi-card">
+                <div class="kpi-label">Total API Fetches</div>
+                <div id="fetchCount" class="kpi-value">...</div>
+                <div id="fetchTrend" class="kpi-sub"></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-label">Live (last hour)</div>
+                <div id="liveCount" class="kpi-value">—</div>
+                <div class="kpi-sub">active requests</div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-label">Top Browser</div>
+                <div id="topBrowser" class="kpi-value">—</div>
+                <div id="topBrowserPct" class="kpi-sub"></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-label">Top Country</div>
+                <div id="topCountry" class="kpi-value">—</div>
+                <div id="topCountryPct" class="kpi-sub"></div>
+            </div>
+        </div>
 
+        <div class="card activity-card">
+            <div class="section-header">
+                <div class="section-label">Request Activity</div>
+                <div class="range-filter">
+                    <button class="range-btn" data-days="7">7d</button>
+                    <button class="range-btn active" data-days="14">14d</button>
+                    <button class="range-btn" data-days="30">30d</button>
+                </div>
+            </div>
             <div class="chart-container">
                 <canvas id="activityChart"></canvas>
             </div>
+        </div>
 
-            <!-- Analytics Grid -->
-            <div class="charts-grid">
-                <div class="chart-box">
-                    <div class="chart-title">Browser</div>
-                    <div class="chart-wrapper">
-                        <canvas id="browserChart"></canvas>
-                    </div>
-                    <div id="browserChart-legend" class="chart-legend"></div>
+        <div class="charts-grid">
+            <div class="card chart-box">
+                <div class="chart-title">Browsers</div>
+                <div class="chart-wrapper">
+                    <canvas id="browserChart"></canvas>
+                    <div id="browserChart-center" class="chart-center-label"></div>
                 </div>
-                <div class="chart-box">
-                    <div class="chart-title">OS</div>
-                    <div class="chart-wrapper">
-                        <canvas id="osChart"></canvas>
-                    </div>
-                    <div id="osChart-legend" class="chart-legend"></div>
+                <div id="browserChart-legend" class="chart-legend"></div>
+            </div>
+            <div class="card chart-box">
+                <div class="chart-title">Operating Systems</div>
+                <div class="chart-wrapper">
+                    <canvas id="osChart"></canvas>
+                    <div id="osChart-center" class="chart-center-label"></div>
                 </div>
-                <div class="chart-box">
-                    <div class="chart-title">Top Countries</div>
-                    <div class="chart-wrapper">
-                        <canvas id="countryChart"></canvas>
-                    </div>
-                    <div id="countryChart-legend" class="chart-legend"></div>
+                <div id="osChart-legend" class="chart-legend"></div>
+            </div>
+            <div class="card chart-box">
+                <div class="chart-title">Top Countries</div>
+                <div class="chart-wrapper">
+                    <canvas id="countryChart"></canvas>
+                    <div id="countryChart-center" class="chart-center-label"></div>
                 </div>
-                <div class="chart-box">
-                    <div class="chart-title">Referrers</div>
-                    <div class="chart-wrapper">
-                        <canvas id="referrerChart"></canvas>
-                    </div>
-                    <div id="referrerChart-legend" class="chart-legend"></div>
-                </div>
+                <div id="countryChart-legend" class="chart-legend"></div>
             </div>
         </div>
 
@@ -81,6 +105,16 @@
 
     <script>
         let chartInstances = {};
+        let activityChartInstance = null;
+        let firstLoad = true;
+        let activityDays = 14;
+        let cachedActivity = {};
+
+        const CHART_COLORS = [
+            '#6366f1', '#8b5cf6', '#ec4899',
+            '#f59e0b', '#10b981', '#3b82f6',
+            '#f43f5e', '#64748b', '#475569'
+        ];
 
         async function loadStats() {
             try {
@@ -94,8 +128,16 @@
                 const activityData = await activityRes.json();
                 const analyticsData = await analyticsRes.json();
 
-                document.getElementById("fetchCount").innerText = statsData.totalFetches.toLocaleString();
+                if (firstLoad) {
+                    animateCounter("fetchCount", statsData.totalFetches);
+                    firstLoad = false;
+                } else {
+                    document.getElementById("fetchCount").innerText = statsData.totalFetches.toLocaleString();
+                }
 
+                updateKPIs(analyticsData, activityData);
+                updateLiveCount(activityData);
+                cachedActivity = activityData;
                 renderActivityChart(activityData);
                 renderAnalyticsCharts(analyticsData);
             } catch (err) {
@@ -103,32 +145,107 @@
             }
         }
 
-        let activityChartInstance = null;
+        function animateCounter(elementId, target) {
+            const el = document.getElementById(elementId);
+            const duration = 1200;
+            const start = performance.now();
+
+            function step(timestamp) {
+                const progress = Math.min((timestamp - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                el.innerText = Math.floor(eased * target).toLocaleString();
+                if (progress < 1) requestAnimationFrame(step);
+                else el.innerText = target.toLocaleString();
+            }
+            requestAnimationFrame(step);
+        }
+
+        function getTopEntry(obj) {
+            const entries = Object.entries(obj);
+            if (entries.length === 0) return { name: '—', pct: 0 };
+            const total = entries.reduce((s, [, v]) => s + v, 0);
+            entries.sort((a, b) => b[1] - a[1]);
+            return { name: entries[0][0], pct: Math.round((entries[0][1] / total) * 100) };
+        }
+
+        function dayKey(daysAgo) {
+            const d = new Date();
+            d.setDate(d.getDate() - daysAgo);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        }
+
+        function dayTotal(activity, daysAgo) {
+            const key = dayKey(daysAgo);
+            let count = 0;
+            Object.keys(activity).forEach(k => { if (k.startsWith(key)) count += activity[k]; });
+            return count;
+        }
+
+        function rangeTotal(activity, startAgo, endAgo) {
+            let total = 0;
+            for (let i = startAgo; i >= endAgo; i--) total += dayTotal(activity, i);
+            return total;
+        }
+
+        function updateKPIs(analytics, activity) {
+            const topBrowser = getTopEntry(analytics.browser);
+            document.getElementById("topBrowser").innerText = topBrowser.name;
+            document.getElementById("topBrowserPct").innerText = topBrowser.pct > 0 ? `${topBrowser.pct}% of traffic` : '';
+
+            const topCountry = getTopEntry(analytics.country);
+            document.getElementById("topCountry").innerText = topCountry.name;
+            document.getElementById("topCountryPct").innerText = topCountry.pct > 0 ? `${topCountry.pct}% of traffic` : '';
+
+            const todayCount = dayTotal(activity, 0);
+            const yesterdayCount = dayTotal(activity, 1);
+            const thisWeek = rangeTotal(activity, 6, 0);
+            const lastWeek = rangeTotal(activity, 13, 7);
+
+            const trendEl = document.getElementById("fetchTrend");
+            let parts = [];
+
+            if (yesterdayCount > 0) {
+                const dayChange = Math.round(((todayCount - yesterdayCount) / yesterdayCount) * 100);
+                parts.push(dayChange >= 0
+                    ? `<span class="trend-up">↑ ${dayChange}%</span> today`
+                    : `<span class="trend-down">↓ ${Math.abs(dayChange)}%</span> today`);
+            } else {
+                parts.push(`<span class="trend-neutral">${todayCount}</span> today`);
+            }
+
+            if (lastWeek > 0) {
+                const wowChange = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+                parts.push(wowChange >= 0
+                    ? `<span class="trend-up">↑ ${wowChange}%</span> WoW`
+                    : `<span class="trend-down">↓ ${Math.abs(wowChange)}%</span> WoW`);
+            }
+
+            trendEl.innerHTML = parts.join('<span class="trend-sep">·</span>');
+        }
+
+        function updateLiveCount(activity) {
+            const now = new Date();
+            const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}`;
+            document.getElementById("liveCount").innerText = activity[curKey] || 0;
+        }
 
         function renderActivityChart(activity) {
             const ctx = document.getElementById('activityChart').getContext('2d');
 
-            // Helper to get last 12 days formatted keys
             const labels = [];
             const dataPoints = [];
             const now = new Date();
 
-            // Generate last 12 days labels
-            for (let i = 11; i >= 0; i--) {
+            for (let i = activityDays - 1; i >= 0; i--) {
                 const d = new Date(now);
                 d.setDate(d.getDate() - i);
-                const dayStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const dayStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                 labels.push(dayStr);
 
-                // Aggregate counts for this day from the hourly buckets
                 let dailyCount = 0;
-                // Format: YYYY-MM-DD
                 const searchKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
                 Object.keys(activity).forEach(key => {
-                    if (key.startsWith(searchKey)) {
-                        dailyCount += activity[key];
-                    }
+                    if (key.startsWith(searchKey)) dailyCount += activity[key];
                 });
                 dataPoints.push(dailyCount);
             }
@@ -138,35 +255,76 @@
                 activityChartInstance.data.datasets[0].data = dataPoints;
                 activityChartInstance.update();
             } else {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+                gradient.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
+                gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
                 activityChartInstance = new Chart(ctx, {
-                    type: 'bar',
+                    type: 'line',
                     data: {
                         labels: labels,
                         datasets: [{
                             label: 'API Calls',
                             data: dataPoints,
-                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                            borderColor: 'rgba(255, 255, 255, 1)',
-                            borderWidth: 1,
-                            borderRadius: 4
+                            fill: true,
+                            backgroundColor: gradient,
+                            borderColor: '#6366f1',
+                            borderWidth: 2.5,
+                            tension: 0.4,
+                            pointBackgroundColor: '#6366f1',
+                            pointBorderColor: '#1a1a2e',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 7,
+                            pointHoverBackgroundColor: '#818cf8',
+                            pointHoverBorderColor: '#fff'
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { color: '#aaaaaa' }
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: {
+                                    color: '#64748b',
+                                    font: { size: 11 },
+                                    padding: 8
+                                },
+                                border: { display: false }
                             },
                             x: {
                                 grid: { display: false },
-                                ticks: { color: '#aaaaaa' }
+                                ticks: {
+                                    color: '#64748b',
+                                    font: { size: 11 },
+                                    padding: 8
+                                },
+                                border: { display: false }
                             }
                         },
                         plugins: {
-                            legend: { display: false }
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 15, 30, 0.9)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#94a3b8',
+                                borderColor: 'rgba(99, 102, 241, 0.3)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12,
+                                displayColors: false,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.parsed.y} requests`;
+                                    }
+                                }
+                            }
                         }
                     }
                 });
@@ -177,7 +335,6 @@
             renderDoughnutChart('browserChart', 'Browsers', data.browser);
             renderDoughnutChart('osChart', 'OS', data.os);
             renderDoughnutChart('countryChart', 'Countries', data.country);
-            renderDoughnutChart('referrerChart', 'Referrers', data.referrer);
         }
 
         function renderDoughnutChart(canvasId, label, dataObj) {
@@ -185,12 +342,10 @@
             const labels = Object.keys(dataObj);
             const data = Object.values(dataObj);
 
-            // Sort by value desc
             const sortedIndices = data.map((val, i) => [val, i]).sort((a, b) => b[0] - a[0]);
             const sortedLabels = sortedIndices.map(item => labels[item[1]]);
             const sortedData = sortedIndices.map(item => item[0]);
 
-            // Top 8 + Others
             let finalLabels = sortedLabels;
             let finalData = sortedData;
 
@@ -202,11 +357,7 @@
                 finalData.push(otherCount);
             }
 
-            const colors = [
-                'rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)',
-                'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)',
-                'rgba(201, 203, 207, 0.8)', 'rgba(100, 100, 100, 0.8)', 'rgba(255, 255, 255, 0.5)'
-            ];
+            const total = finalData.reduce((a, b) => a + b, 0);
 
             if (chartInstances[canvasId]) {
                 chartInstances[canvasId].data.labels = finalLabels;
@@ -219,29 +370,52 @@
                         labels: finalLabels,
                         datasets: [{
                             data: finalData,
-                            backgroundColor: colors,
-                            borderWidth: 0
+                            backgroundColor: CHART_COLORS.slice(0, finalLabels.length),
+                            borderWidth: 0,
+                            hoverBorderWidth: 2,
+                            hoverBorderColor: 'rgba(255,255,255,0.3)',
+                            spacing: 2
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
-                            legend: {
-                                display: false
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 15, 30, 0.9)',
+                                titleColor: '#e2e8f0',
+                                bodyColor: '#94a3b8',
+                                borderColor: 'rgba(99, 102, 241, 0.3)',
+                                borderWidth: 1,
+                                cornerRadius: 8,
+                                padding: 12,
+                                displayColors: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        const pct = total > 0 ? Math.round((context.parsed / total) * 100) : 0;
+                                        return ` ${context.label}: ${context.parsed} (${pct}%)`;
+                                    }
+                                }
                             }
                         },
-                        cutout: '75%'
+                        cutout: '72%'
                     }
                 });
             }
 
-            // Render Custom Legend
+            const centerEl = document.getElementById(canvasId + '-center');
+            if (centerEl && finalLabels.length > 0) {
+                const topPct = total > 0 ? Math.round((finalData[0] / total) * 100) : 0;
+                centerEl.innerHTML = `<span class="center-value">${topPct}%</span><span class="center-name">${finalLabels[0]}</span>`;
+            }
+
             const legendContainer = document.getElementById(canvasId + '-legend');
             legendContainer.innerHTML = '';
             finalLabels.forEach((label, index) => {
-                const color = colors[index % colors.length];
+                const color = CHART_COLORS[index % CHART_COLORS.length];
                 const value = finalData[index];
+                const pct = total > 0 ? Math.round((value / total) * 100) : 0;
 
                 const item = document.createElement('div');
                 item.className = 'legend-item';
@@ -251,19 +425,35 @@
                 colorBox.style.backgroundColor = color;
 
                 const text = document.createElement('span');
-                text.innerText = `${label}`; // (${value}) if we want numbers
+                text.className = 'legend-label';
+                text.innerText = label;
+
+                const pctSpan = document.createElement('span');
+                pctSpan.className = 'legend-percent';
+                pctSpan.innerText = `${pct}%`;
 
                 item.appendChild(colorBox);
                 item.appendChild(text);
+                item.appendChild(pctSpan);
                 legendContainer.appendChild(item);
             });
         }
 
-        // Load immediately
         loadStats();
-
-        // Poll every 5 seconds (reduced freq for analytics)
         setInterval(loadStats, 5000);
+
+        document.querySelectorAll('.range-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelector('.range-btn.active').classList.remove('active');
+                btn.classList.add('active');
+                activityDays = parseInt(btn.dataset.days);
+                if (activityChartInstance) {
+                    activityChartInstance.destroy();
+                    activityChartInstance = null;
+                }
+                renderActivityChart(cachedActivity);
+            });
+        });
     </script>
 </body>
 

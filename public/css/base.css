@@ -26,6 +26,10 @@ body {
     overflow-x: hidden;
 }
 
+.dashboard-main {
+    align-items: flex-start;
+}
+
 main {
     width: 100%;
     max-width: 600px;
@@ -50,7 +54,7 @@ header {
 }
 
 h1 {
-    font-size: 2.5rem;
+    font-size: 1.75rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     margin-bottom: 0.5rem;
@@ -58,6 +62,12 @@ h1 {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+@media (min-width: 640px) {
+    h1 {
+        font-size: 2.5rem;
+    }
 }
 
 .card {
