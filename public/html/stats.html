@@ -293,7 +293,14 @@
                 colorBox.style.backgroundColor = color;
 
                 const text = document.createElement('span');
-                text.innerHTML = `<strong>${label}</strong> <span class="legend-value">${percentage}%</span>`;
+                const labelStrong = document.createElement('strong');
+                labelStrong.textContent = label;
+                const percentSpan = document.createElement('span');
+                percentSpan.className = 'legend-value';
+                percentSpan.textContent = `${percentage}%`;
+                text.appendChild(labelStrong);
+                text.appendChild(document.createTextNode(' '));
+                text.appendChild(percentSpan);
 
                 item.appendChild(colorBox);
                 item.appendChild(text);
